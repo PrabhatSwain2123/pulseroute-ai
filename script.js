@@ -2,6 +2,10 @@ let map;
 let directionsService;
 let directionsRenderer;
 
+const USE_GEMINI = false; // Set to false to use local AI-style reasoning instead of Gemini API
+const GEMINI_API_KEY = "YOUR_GEMINI_API_KEy";
+const GEMINI_MODEL = "gemini-2.0-flash";
+
 const analyticsHistory = [
   { day: "Mon", avgDelay: 16, reliability: 82, peakWindow: "8:30 - 9:30 AM" },
   { day: "Tue", avgDelay: 22, reliability: 76, peakWindow: "8:45 - 10:00 AM" },
@@ -88,7 +92,9 @@ function analyzeRoute() {
   const timeContext = document.getElementById("timeContext").value;
 
   document.getElementById("summaryBox").innerText = "Fetching live route data...";
-  document.getElementById("aiInsight").innerText = "Building corridor recommendation...";
+  document.getElementById("aiInsight").innerText = USE_GEMINI
+    ? "Generating Gemini route insight..."
+    : "Building local AI-style recommendation...";
 
   directionsService.route(
     {
@@ -101,7 +107,7 @@ function analyzeRoute() {
         trafficModel: "bestguess"
       }
     },
-    (result, status) => {
+    async (result, status) => {
       if (status !== "OK") {
         document.getElementById("summaryBox").innerText =
           "Could not fetch route data. Status: " + status;
@@ -138,8 +144,15 @@ function analyzeRoute() {
 
       renderRoutes(routes);
       renderSummary(routes);
-      renderLocalInsight(routes, origin, destination, timeContext);
       renderAnalytics(routes[0]);
+      renderChokepoints();
+
+      if (USE_GEMINI) {
+        const insight = await getGeminiInsight(routes, origin, destination, timeContext);
+        document.getElementById("aiInsight").innerText = insight;
+      } else {
+        renderLocalInsight(routes, origin, destination, timeContext);
+      }
     }
   );
 }
@@ -214,16 +227,88 @@ function renderLocalInsight(routes, origin, destination, timeContext) {
   recommendation += `If you leave ${departureLabelMap[timeContext]}, the route is expected to take about ${best.predictedDuration} minutes, with an additional predicted delay of ${best.predictedExtra} minutes over current conditions.\n`;
 
   if (best.reliability >= 80) {
-    recommendation += `Reliability remains strong, so this route is comparatively stable for an office commute.\n`;
+    recommendation += `Reliability is strong, so this route appears relatively stable for a regular office commute.\n`;
   } else if (best.reliability >= 70) {
     recommendation += `Reliability is moderate, so some slowdown variability should be expected.\n`;
   } else {
-    recommendation += `Reliability is weaker, so buffer time should be added before departure.\n`;
+    recommendation += `Reliability is lower, so adding a time buffer before departure would be safer.\n`;
   }
 
-  recommendation += `Watch known pressure zones such as Silk Board and KR Puram, and prefer an earlier departure window if flexibility is available.`;
+  recommendation += `Watch key chokepoints such as Silk Board and KR Puram, and consider an earlier departure if flexibility is available.\n`;
+  recommendation += `Mode: Local fallback reasoning.`;
 
   document.getElementById("aiInsight").innerText = recommendation;
+}
+
+async function getGeminiInsight(routes, origin, destination, timeContext) {
+  if (!GEMINI_API_KEY || GEMINI_API_KEY === "PASTE_YOUR_GEMINI_KEY_HERE") {
+    return "Gemini mode is enabled, but no valid Gemini API key was configured.";
+  }
+
+  const best = routes[0];
+
+  const prompt = `
+You are PulseRoute AI, a commute intelligence assistant for Bengaluru.
+
+Analyze this trip:
+Origin: ${origin}
+Destination: ${destination}
+Departure context: ${timeContext}
+
+Route options:
+${routes.map((r, i) => `
+Route ${i + 1}: ${r.summary}
+Distance: ${r.distanceText}
+Current ETA: ${r.currentDuration} minutes
+Predicted ETA: ${r.predictedDuration} minutes
+Predicted Delay: ${r.predictedExtra} minutes
+Reliability Score: ${r.reliability}/100
+`).join("\n")}
+
+Best route: ${best.summary}
+
+Write 4 short lines:
+1. Why this route is best
+2. Current vs predicted traffic difference
+3. Mention Bengaluru chokepoint awareness
+4. End with one commuter action suggestion
+
+Keep it concise and practical.
+`;
+
+  try {
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          contents: [
+            {
+              parts: [{ text: prompt }]
+            }
+          ]
+        })
+      }
+    );
+
+    const data = await response.json();
+    console.log("Gemini response:", data);
+
+    if (!response.ok) {
+      return `Gemini request failed. Falling back is recommended. Error: ${data.error?.message || "Unknown error"}`;
+    }
+
+    const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    return text
+      ? `${text}\nMode: Gemini live insight.`
+      : "Gemini returned no usable insight. Falling back is recommended.";
+  } catch (error) {
+    console.error("Gemini fetch error:", error);
+    return "Gemini request failed due to a network or API issue. Falling back is recommended.";
+  }
 }
 
 function renderAnalytics(bestRoute = null) {
