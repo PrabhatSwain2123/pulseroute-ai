@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PulseRoute AI - Bengaluru Traffic Intelligence</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">Hackathon MVP</p>
+        <h1>PulseRoute AI</h1>
+        <p class="subtitle">
+          Predictive traffic intelligence for Bengaluru’s IT commute corridor:
+          ITPL ↔ Electronic City
+        </p>
+      </div>
+      <button id="refreshBtn" class="primary-btn">Refresh Analysis</button>
+    </header>
+
+    <main class="dashboard">
+      <section class="left-panel">
+        <div class="card controls-card">
+          <h2>Trip Configuration</h2>
+
+          <label for="origin">Origin</label>
+          <input id="origin" value="ITPL Tech Park, Whitefield, Bengaluru" />
+
+          <label for="destination">Destination</label>
+          <input id="destination" value="Electronic City, Bengaluru" />
+
+          <label for="travelMode">Transport Mode</label>
+          <select id="travelMode">
+            <option value="DRIVING" selected>Driving</option>
+            <option value="TWO_WHEELER">Two Wheeler</option>
+          </select>
+
+          <label for="timeContext">Departure Context</label>
+          <select id="timeContext">
+            <option value="now" selected>Leave Now</option>
+            <option value="15">Leave in 15 mins</option>
+            <option value="30">Leave in 30 mins</option>
+            <option value="60">Leave in 60 mins</option>
+          </select>
+
+          <button id="analyzeBtn" class="primary-btn full-width">Analyze Route</button>
+        </div>
+
+        <div class="card">
+          <h2>AI Recommendation</h2>
+          <div id="aiInsight" class="ai-box">
+            PulseRoute AI will explain which Bengaluru commute route is best based on current vs predicted corridor traffic.
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Corridor Notes</h2>
+          <ul class="notes">
+            <li>Focus corridor: ITPL / Whitefield to Electronic City.</li>
+            <li>Shows current vs predicted travel time.</li>
+            <li>Highlights congestion chokepoints across the corridor.</li>
+            <li>Analytics panel shows recent trend simulation for the last few days.</li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="center-panel">
+        <div class="card map-card">
+          <div id="map"></div>
+        </div>
+      </section>
+
+      <section class="right-panel">
+        <div class="card tabs-card">
+          <div class="tabs">
+            <button class="tab-btn active" data-tab="comparisonTab">Route Comparison</button>
+            <button class="tab-btn" data-tab="analyticsTab">Analytics</button>
+          </div>
+
+          <div id="comparisonTab" class="tab-content active">
+            <h2>Route Comparison</h2>
+            <div id="routesContainer" class="routes-container"></div>
+
+            <h2 class="subheading">Prediction Summary</h2>
+            <div id="summaryBox" class="summary-box">
+              Live route comparison between ITPL and Electronic City will appear here.
+            </div>
+          </div>
+
+          <div id="analyticsTab" class="tab-content">
+            <h2>Last 5 Days Analytics</h2>
+            <div id="analyticsContainer" class="analytics-container"></div>
+
+            <h2 class="subheading">Major Chokepoints</h2>
+            <div id="chokepointsContainer" class="chokepoints-container"></div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="script.js"></script>
+  <script async
+    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCr5SSfdCey_2YoKSnV9taToWhllMIZ0Z4&callback=initMap">
+  </script>
+</body>
+</html>
